@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+.ipynb_checkpoints/
+
+# Segredos e ambiente local (DoD 5: nenhum segredo no repositório)
+.env
+*.pem
+*.key
+credentials*
+
+# Dados (não versionar dados brutos; apenas amostras em tests/fixtures)
+data/
+!tests/fixtures/**
+
+# IDE / SO
+.vscode/
+.idea/
+.DS_Store
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl.bak
+crash.log
+
+# Airflow local
+airflow/logs/
