@@ -1,16 +1,16 @@
 variable "region" {
-  description = "Região AWS"
+  description = "AWS region"
   type        = string
   default     = "us-east-1"
 }
 
 variable "project" {
-  description = "Prefixo dos recursos"
+  description = "Resource name prefix"
   type        = string
   default     = "aws-fundos-pipeline"
 }
 
 variable "alert_email" {
-  description = "E-mail para alertas de falha (SNS) e de orçamento"
+  description = "E-mail for failure (SNS) and budget alerts"
   type        = string
 }

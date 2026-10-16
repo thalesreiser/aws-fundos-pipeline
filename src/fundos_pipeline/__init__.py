@@ -1,1 +1,1 @@
-"""Pipeline de fundos CVM na AWS."""
+"""Fund data pipeline (CVM) on AWS."""

@@ -1,1 +1,1 @@
-# Saídas (nomes dos buckets, ARNs das roles) entram no Épico 2.
+# Outputs (bucket names, role ARNs) are added in epic 2.

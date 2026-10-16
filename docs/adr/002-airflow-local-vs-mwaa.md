@@ -1,12 +1,12 @@
-# 002 - Airflow local vs MWAA
+# 002 - Local Airflow vs MWAA
 
-- **Status:** proposto
-- **Data:** AAAA-MM-DD
+- **Status:** proposed
+- **Date:** YYYY-MM-DD
 
-## Contexto
+## Context
 
-## Decisão
+## Decision
 
-## Alternativas consideradas
+## Alternatives considered
 
-## Consequências
+## Consequences
