@@ -1,6 +1,6 @@
-# 06 - Matriz de rastreabilidade
+# 06 - Traceability matrix
 
-| Requisito | Componente | Teste | Status |
+| Requirement | Component | Test | Status |
 |---|---|---|---|
 | RF-01 | `fundos_pipeline/ingestion` | | ⬜ |
 | RF-02 | `fundos_pipeline/ingestion` | | ⬜ |
@@ -14,6 +14,6 @@
 | RNF-02 | `infra/terraform` (Budgets) | | ⬜ |
 | RNF-03 | `infra/terraform` (IAM, S3) + CI OIDC | | ⬜ |
 
-## Controle de mudanças
-| Data | Mudança | Motivo | ADR |
+## Change log
+| Date | Change | Reason | ADR |
 |---|---|---|---|

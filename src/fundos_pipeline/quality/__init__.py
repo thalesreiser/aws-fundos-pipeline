@@ -1,1 +1,1 @@
-"""Regras pandera e quarentena (RF-04)."""
+"""pandera rules and quarantine (RF-04)."""

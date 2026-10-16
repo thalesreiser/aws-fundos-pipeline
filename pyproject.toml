@@ -1,7 +1,7 @@
 [project]
 name = "fundos-pipeline"
 version = "0.1.0"
-description = "Pipeline orquestrado na AWS com IaC e CI/CD sobre dados abertos da CVM"
+description = "AWS data pipeline with IaC and CI/CD on CVM open data"
 requires-python = ">=3.11,<3.12"
 dependencies = [
   "boto3>=1.35",

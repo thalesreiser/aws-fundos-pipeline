@@ -8,9 +8,9 @@ terraform {
     }
   }
 
-  # Épico 2.1: backend remoto do estado (preencher após criar o bucket de state)
+  # Task 2.1: remote state backend (fill in after creating the state bucket)
   # backend "s3" {
-  #   bucket         = "<bucket-de-state>"
+  #   bucket         = "<state-bucket>"
   #   key            = "aws-fundos-pipeline/terraform.tfstate"
   #   region         = "us-east-1"
   #   encrypt        = true

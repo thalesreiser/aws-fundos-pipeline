@@ -1,12 +1,12 @@
 # 001 - Glue Python shell vs Glue Spark
 
-- **Status:** proposto
-- **Data:** AAAA-MM-DD
+- **Status:** proposed
+- **Date:** YYYY-MM-DD
 
-## Contexto
+## Context
 
-## Decisão
+## Decision
 
-## Alternativas consideradas
+## Alternatives considered
 
-## Consequências
+## Consequences

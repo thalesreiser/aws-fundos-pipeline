@@ -6,7 +6,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write  # OIDC com a AWS (RNF-03), sem chaves de longa duração
+  id-token: write  # OIDC with AWS (RNF-03), no long-lived keys
 
 jobs:
   python:
@@ -31,7 +31,7 @@ jobs:
       - run: terraform fmt -check -recursive
       - run: terraform init -backend=false
       - run: terraform validate
-      # Épico 2.4: terraform plan com credenciais via OIDC
+      # Task 2.4: terraform plan with OIDC credentials
       # - uses: aws-actions/configure-aws-credentials@v4
       #   with:
       #     role-to-assume: ${{ secrets.AWS_ROLE_ARN }}

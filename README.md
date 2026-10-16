@@ -5,178 +5,176 @@
 ![Terraform](https://img.shields.io/badge/Terraform-%E2%89%A51.6-7B42BC?logo=terraform&logoColor=white)
 ![AWS](https://img.shields.io/badge/AWS-Lambda%20%7C%20S3%20%7C%20Glue%20%7C%20Athena-FF9900?logo=amazonwebservices&logoColor=white)
 ![Airflow](https://img.shields.io/badge/Apache%20Airflow-local-017CEE?logo=apacheairflow&logoColor=white)
-[![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-green)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-> Pipeline de dados na **AWS**, 100% provisionado com **Terraform**, orquestrado por **Airflow** e entregue com **CI/CD**, que transforma os dados abertos de fundos de investimento da CVM em tabelas analíticas consultáveis no Athena, por menos de US$ 5 por mês.
+> A data pipeline on **AWS**, 100% provisioned with **Terraform**, orchestrated by **Airflow** and shipped through **CI/CD**, that turns Brazilian Securities Commission (CVM) open data on investment funds into analytics tables queryable in Athena, for less than US$ 5 a month.
 
-**Status:** 🚧 em desenvolvimento · Épico 1 de 7 (Fundações e conta AWS)
-
-> 🇬🇧 **In English:** A serverless data pipeline on **AWS** (Lambda, S3, Glue, Athena), fully provisioned with **Terraform**, orchestrated by **Airflow** and shipped through **GitHub Actions with OIDC**. It turns the Brazilian Securities Commission (CVM) open data on investment funds into queryable analytics tables, with idempotent reprocessing, quarantine for invalid records and a cost target under US$ 5/month.
+**Status:** 🚧 in progress · epic 1 of 7 (foundations and AWS account)
 
 ---
 
-## Por que este projeto existe
+## Why this project exists
 
-A CVM publica diariamente o **informe diário** de milhares de fundos de investimento (valor da cota, patrimônio líquido, captações, resgates e número de cotistas), além do **cadastro** desses fundos. Os dados são ricos, mas chegam como CSVs mensais, sem histórico consolidado e sem nenhuma garantia de qualidade.
+Every day CVM publishes a **daily report** for thousands of investment funds (share value, net assets, inflows, redemptions and number of shareholders), plus the **registry** of those funds. The data is rich, but it arrives as monthly CSV files, with no consolidated history and no quality guarantees.
 
-Este projeto constrói o caminho completo da fonte até a consulta, com as práticas que se espera de um pipeline em produção:
+This project builds the full path from source to query, with the practices expected from a production pipeline:
 
-- **Infraestrutura como código:** nenhum recurso criado à mão no console
-- **Idempotência:** reprocessar um mês dá exatamente o mesmo resultado
-- **Qualidade com quarentena:** registros inválidos são isolados, não descartados em silêncio
-- **Segurança por padrão:** menor privilégio, criptografia e CI sem chaves de longa duração
-- **Custo sob controle:** orçamento com alerta e `terraform destroy` documentado
+- **Infrastructure as code:** no resource is created by hand in the console
+- **Idempotency:** reprocessing a month produces exactly the same result
+- **Quality with quarantine:** invalid records are isolated, never silently dropped
+- **Secure by default:** least privilege, encryption and CI without long-lived keys
+- **Controlled cost:** budget with alerts and a documented `terraform destroy`
 
-## Arquitetura
+## Architecture
 
 ```mermaid
 flowchart LR
-  AF[Airflow local<br/>DAG] -->|orquestra| L[Lambda<br/>ingestão]
-  CVM[CVM<br/>dados abertos] --> L
+  AF[Local Airflow<br/>DAG] -->|orchestrates| L[Lambda<br/>ingestion]
+  CVM[CVM<br/>open data] --> L
   L --> B[(S3 Bronze)]
-  B -->|Glue job:<br/>Parquet + validação| S[(S3 Silver)]
-  B -->|inválidos| Q[(S3 Quarantine)]
-  S -->|Glue job:<br/>agregações| G[(S3 Gold)]
-  G --> C[Glue Data Catalog] --> A[Athena] --> N[Notebook / consumo]
-  AF -->|falha| SNS[SNS<br/>e-mail]
+  B -->|Glue job:<br/>Parquet + validation| S[(S3 Silver)]
+  B -->|invalid| Q[(S3 Quarantine)]
+  S -->|Glue job:<br/>aggregations| G[(S3 Gold)]
+  G --> C[Glue Data Catalog] --> A[Athena] --> N[Notebook / consumers]
+  AF -->|failure| SNS[SNS<br/>e-mail]
   GH[GitHub Actions<br/>OIDC] -->|validate / plan / apply| TF[Terraform]
-  TF -.->|provisiona| B & S & G & Q & L & C & SNS
+  TF -.->|provisions| B & S & G & Q & L & C & SNS
 ```
 
-### Organização no S3
+### S3 layout
 
 ```
-s3://<projeto>-bronze/informe_diario/ano=2026/mes=09/inf_diario_fi_202609.csv
-s3://<projeto>-bronze/cadastro/data_carga=2026-10-16/cad_fi.csv
-s3://<projeto>-silver/informe_diario/ano=2026/mes=09/part-*.parquet
-s3://<projeto>-quarantine/informe_diario/ano=2026/mes=09/...
-s3://<projeto>-gold/indicadores_fundo_mes/ano=2026/mes=09/part-*.parquet
+s3://<project>-bronze/informe_diario/ano=2026/mes=09/inf_diario_fi_202609.csv
+s3://<project>-bronze/cadastro/data_carga=2026-10-16/cad_fi.csv
+s3://<project>-silver/informe_diario/ano=2026/mes=09/part-*.parquet
+s3://<project>-quarantine/informe_diario/ano=2026/mes=09/...
+s3://<project>-gold/indicadores_fundo_mes/ano=2026/mes=09/part-*.parquet
 ```
 
-O particionamento por **ano/mês** permite reprocessar uma competência sobrescrevendo só a partição dela, que é o que garante a idempotência (RNF-01).
+Partitioning by **year/month** lets a reference month be reprocessed by overwriting only its partition, which is what guarantees idempotency (RNF-01).
 
-### Indicadores da camada gold
+### Gold layer metrics
 
-Por fundo e por mês:
+Per fund and per month:
 
-| Indicador | Definição |
+| Metric | Definition |
 |---|---|
-| **Patrimônio líquido** | PL no último dia útil do mês |
-| **Captação líquida** | Σ captações − Σ resgates no período |
-| **Variação da cota** | cota no fim do mês ÷ cota no fim do mês anterior − 1 |
+| **Net assets** | Net asset value on the last business day of the month |
+| **Net inflows** | Σ inflows − Σ redemptions in the period |
+| **Share value change** | share value at month end ÷ share value at the previous month end − 1 |
 
-A chave do informe é **CNPJ do fundo + data de competência** (RN-01).
+The daily report key is **fund CNPJ + reference date** (RN-01).
 
-## Destaques técnicos
+## Technical highlights
 
-| Tema | O que é demonstrado |
+| Topic | What is demonstrated |
 |---|---|
-| **Terraform** | Backend remoto de estado, buckets por camada com criptografia e bloqueio público, roles IAM de menor privilégio, Glue Database, SNS e AWS Budgets |
-| **CI/CD** | `terraform fmt`, `validate` e `plan` no PR; autenticação na AWS via **OIDC** (sem *access keys* guardadas) |
-| **Airflow** | DAG com dependências, *retries*, *backfill* e reexecução idempotente |
-| **Qualidade** | Regras com **pandera** (schema, nulos, duplicidade, faixas) e quarentena |
-| **Testes** | Unitários com pytest, integração com **moto** simulando S3, `tflint` |
-| **Observabilidade** | Logs estruturados e métricas no CloudWatch, alerta de falha por e-mail |
+| **Terraform** | Remote state backend, per-layer buckets with encryption and public access blocked, least-privilege IAM roles, Glue Database, SNS and AWS Budgets |
+| **CI/CD** | `terraform fmt`, `validate` and `plan` on PRs; AWS authentication via **OIDC** (no stored access keys) |
+| **Airflow** | DAG with dependencies, retries, backfill and idempotent re-runs |
+| **Data quality** | **pandera** rules (schema, nulls, duplicates, ranges) and quarantine |
+| **Tests** | Unit tests with pytest, integration with **moto** simulating S3, `tflint` |
+| **Observability** | Structured logs and CloudWatch metrics, failure alerts by e-mail |
 
-## Custos
+## Cost
 
-| Recurso | Estratégia para manter o custo baixo |
+| Resource | Strategy to keep cost low |
 |---|---|
-| Lambda, S3, Athena | Dentro ou perto do free tier para este volume |
-| Glue | Jobs Python com capacidade mínima e execução sob demanda |
-| Airflow | Roda **local** em Docker. O MWAA teria custo fixo mensal (ver ADR 002) |
-| Proteção | AWS Budgets com alerta em 80% e `make tf-destroy` ao fim de cada sessão |
+| Lambda, S3, Athena | Within or close to the free tier for this volume |
+| Glue | Python shell jobs with minimum capacity, run on demand |
+| Airflow | Runs **locally** in Docker. MWAA would have a fixed monthly cost (see ADR 002) |
+| Safety net | AWS Budgets alert at 80% and `make tf-destroy` at the end of each session |
 
-**Meta:** ≤ US$ 5/mês. O custo real medido será publicado aqui.
+**Target:** US$ 5/month or less. The actual measured cost will be published here.
 
 ## Stack
 
-| Camada | Tecnologia |
+| Layer | Technology |
 |---|---|
-| Ingestão | AWS Lambda (Python) |
-| Armazenamento | Amazon S3 (bronze, silver, gold, quarantine) |
-| Transformação | AWS Glue (job Python) |
-| Catálogo e consulta | Glue Data Catalog + Amazon Athena |
-| Orquestração | Apache Airflow (Docker Compose local) |
+| Ingestion | AWS Lambda (Python) |
+| Storage | Amazon S3 (bronze, silver, gold, quarantine) |
+| Transformation | AWS Glue (Python job) |
+| Catalog and query | Glue Data Catalog + Amazon Athena |
+| Orchestration | Apache Airflow (local Docker Compose) |
 | IaC | Terraform |
 | CI/CD | GitHub Actions + OIDC |
-| Qualidade | pandera + pytest + moto |
-| Observabilidade | CloudWatch + SNS |
+| Quality | pandera + pytest + moto |
+| Observability | CloudWatch + SNS |
 
-## Como rodar
+## How to run
 
-**Pré-requisitos:** conta AWS (com MFA e usuário não-root), Terraform ≥ 1.6, Docker e Python 3.11.
+**Prerequisites:** an AWS account (with MFA and a non-root user), Terraform 1.6+, Docker and Python 3.11.
 
 ```bash
-make tf-apply                     # provisiona a infraestrutura
-make airflow-up                   # sobe o Airflow local
-make trigger COMPETENCIA=2026-09  # processa um mês ponta a ponta
+make tf-apply                     # provision the infrastructure
+make airflow-up                   # start local Airflow
+make trigger COMPETENCIA=2026-09  # process one month end to end
 ```
 
-Ao terminar: **`make tf-destroy`**.
+When you are done: **`make tf-destroy`**.
 
-Para desenvolver: `make install`, `make lint`, `make test` e `make tf-plan`.
+For development: `make install`, `make lint`, `make test` and `make tf-plan`.
 
-## Estrutura do repositório
+## Repository layout
 
 ```
 ├── src/fundos_pipeline/
-│   ├── ingestion/        # Lambdas: informe diário e cadastro
-│   ├── transform/        # Jobs Glue: silver e gold
-│   └── quality/          # Regras pandera e quarentena
-├── airflow/dags/         # DAG de orquestração (separada da lógica)
-├── infra/terraform/      # Toda a infraestrutura AWS
-├── tests/                # Unitários e integração com moto
-├── notebooks/            # Exemplo de consumo da gold
-├── docs/                 # Requisitos (01–06) e ADRs
+│   ├── ingestion/        # Lambdas: daily report and registry
+│   ├── transform/        # Glue jobs: silver and gold
+│   └── quality/          # pandera rules and quarantine
+├── airflow/dags/         # orchestration DAG (separate from the logic)
+├── infra/terraform/      # all AWS infrastructure
+├── tests/                # unit and moto integration tests
+├── notebooks/            # gold consumption example
+├── docs/                 # requirements (01–06) and ADRs
 └── .github/workflows/    # CI: Python + Terraform
 ```
 
 ## Roadmap
 
-| Épico | Entrega | Horas | Status |
+| Epic | Deliverable | Hours | Status |
 |---|---|---|---|
-| 1. Fundações e conta AWS | Repositório, conta segura, Budgets, visão e requisitos | 5 h | 🚧 |
-| 2. Infraestrutura como código | State remoto, S3, IAM, Glue, SNS, `plan` no CI | 7 h | ⬜ |
-| 3. Ingestão | Lambdas do informe e do cadastro, testes com moto | 6 h | ⬜ |
-| 4. Transformação e qualidade | Glue silver/gold, pandera, quarentena, reconciliação | 9 h | ⬜ |
-| 5. Orquestração | Airflow, DAG, idempotência, alerta de falha | 6 h | ⬜ |
-| 6. Consumo | Tabelas e views no Athena, notebook | 3 h | ⬜ |
-| 7. CI/CD e publicação | Pipeline completo, ADRs, custo real, README final | 4 h | ⬜ |
+| 1. Foundations and AWS account | Repository, secure account, Budgets, vision and requirements | 5 h | 🚧 |
+| 2. Infrastructure as code | Remote state, S3, IAM, Glue, SNS, `plan` in CI | 7 h | ⬜ |
+| 3. Ingestion | Daily report and registry Lambdas, moto tests | 6 h | ⬜ |
+| 4. Transformation and quality | Glue silver/gold, pandera, quarantine, reconciliation | 9 h | ⬜ |
+| 5. Orchestration | Airflow, DAG, idempotency, failure alerts | 6 h | ⬜ |
+| 6. Consumption | Athena tables and views, notebook | 3 h | ⬜ |
+| 7. CI/CD and publication | Full pipeline, ADRs, actual cost, final README | 4 h | ⬜ |
 
-## Resultados medidos
+## Measured results
 
-| Métrica | Meta | Medido |
+| Metric | Target | Measured |
 |---|---|---|
-| `terraform apply` + execução da DAG | ≤ 30 min | — |
-| Reexecução da mesma competência | 0 duplicatas | — |
-| Custo mensal | ≤ US$ 5 | — |
+| `terraform apply` + DAG run | 30 min or less | — |
+| Re-running the same reference month | 0 duplicates | — |
+| Monthly cost | US$ 5 or less | — |
 
-## Documentação
+## Documentation
 
-| Documento | Conteúdo |
+| Document | Content |
 |---|---|
-| [01 - Visão e escopo](docs/01-visao-e-escopo.md) | Problema, objetivo, escopo e métricas de sucesso |
-| [02 - Análise e priorização](docs/02-analise-e-priorizacao.md) | Requisitos (MoSCoW), regras, restrições e riscos |
-| [03 - Especificação](docs/03-especificacao.md) | User stories em Gherkin e modelo de dados |
-| [04 - Arquitetura](docs/04-arquitetura.md) | C4 simplificado |
-| [05 - Validação](docs/05-validacao.md) | Execução dos critérios de aceite |
-| [06 - Rastreabilidade](docs/06-rastreabilidade.md) | Requisito → componente → teste |
-| [ADRs](docs/adr/) | Glue Python vs Spark, Airflow local vs MWAA, particionamento, idempotência |
+| [01 - Vision and scope](docs/01-vision-and-scope.md) | Problem, goal, scope and success metrics |
+| [02 - Analysis and prioritization](docs/02-analysis-and-prioritization.md) | Requirements (MoSCoW), rules, constraints and risks |
+| [03 - Specification](docs/03-specification.md) | User stories in Gherkin and data model |
+| [04 - Architecture](docs/04-architecture.md) | Simplified C4 |
+| [05 - Validation](docs/05-validation.md) | Acceptance criteria execution |
+| [06 - Traceability](docs/06-traceability.md) | Requirement → component → test |
+| [ADRs](docs/adr/) | Glue Python vs Spark, local Airflow vs MWAA, partitioning, idempotency |
 
-## Projetos relacionados
+## Related projects
 
-| # | Projeto | Foco |
+| # | Project | Focus |
 |---|---|---|
-| P2 | [spark-cnpj-lakehouse](https://github.com/thalesreiser/spark-cnpj-lakehouse) | Processamento distribuído com Spark e Delta Lake |
-| **P1** | **aws-fundos-pipeline** (este) | Pipeline na AWS com Terraform, Airflow e CI/CD |
-| P3 | [dbt-dw-api](https://github.com/thalesreiser/dbt-dw-api) | Data warehouse com dbt e API REST, que consome a gold deste projeto |
+| P2 | [spark-cnpj-lakehouse](https://github.com/thalesreiser/spark-cnpj-lakehouse) | Distributed processing with Spark and Delta Lake |
+| **P1** | **aws-fundos-pipeline** (this one) | AWS pipeline with Terraform, Airflow and CI/CD |
+| P3 | [dbt-dw-api](https://github.com/thalesreiser/dbt-dw-api) | Data warehouse with dbt and a REST API, built on the gold layer of this project |
 
-## Licença
+## License
 
-Código sob a licença [MIT](LICENSE): pode ser usado, copiado e modificado, inclusive comercialmente, desde que o aviso de copyright de **Thales Reiser Pedreira** seja mantido. Regras sobre os dados e a segurança estão em [`POLITICA-DE-USO.md`](POLITICA-DE-USO.md).
+Code under the [MIT](LICENSE) license: it may be used, copied and modified, including commercially, as long as the copyright notice of **Thales Reiser Pedreira** is kept. Rules about data, security and cloud costs are in [`USAGE-POLICY.md`](USAGE-POLICY.md).
 
-## Autor
+## Author
 
-**Thales Reiser Pedreira**, Engenheiro de Dados e de Software · Python, SQL, AWS e Big Data.
+**Thales Reiser Pedreira**, Data and Software Engineer · Python, SQL, AWS and Big Data.
 [GitHub](https://github.com/thalesreiser) · [LinkedIn](https://www.linkedin.com/in/thalesreiserpedreira)

@@ -1,4 +1,4 @@
-# Airflow local
+# Local Airflow
 
-Airflow via Docker Compose (decisão: evitar custo contínuo do MWAA, ver ADR 002).
-Adicionar aqui o `docker-compose.yml` oficial do Airflow (Épico 5.1).
+Airflow via Docker Compose (decision: avoid the continuous cost of MWAA, see ADR 002).
+Add the official Airflow `docker-compose.yml` here (task 5.1).

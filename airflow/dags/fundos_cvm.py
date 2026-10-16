@@ -1,1 +1,1 @@
-"""RF-07: DAG de ingestão -> silver -> gold com retries, backfill e idempotência."""
+"""RF-07: ingestion -> silver -> gold DAG with retries, backfill and idempotency."""

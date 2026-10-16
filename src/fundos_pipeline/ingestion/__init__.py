@@ -1,1 +1,1 @@
-"""Lambdas de ingestão: informe diário (RF-01) e cadastro (RF-02)."""
+"""Ingestion Lambdas: daily report (RF-01) and fund registry (RF-02)."""
