@@ -5,11 +5,13 @@
 ![Terraform](https://img.shields.io/badge/Terraform-%E2%89%A51.6-7B42BC?logo=terraform&logoColor=white)
 ![AWS](https://img.shields.io/badge/AWS-Lambda%20%7C%20S3%20%7C%20Glue%20%7C%20Athena-FF9900?logo=amazonwebservices&logoColor=white)
 ![Airflow](https://img.shields.io/badge/Apache%20Airflow-local-017CEE?logo=apacheairflow&logoColor=white)
-![Licença](https://img.shields.io/badge/licen%C3%A7a-propriet%C3%A1ria-lightgrey)
+[![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-green)](LICENSE)
 
 > Pipeline de dados na **AWS**, 100% provisionado com **Terraform**, orquestrado por **Airflow** e entregue com **CI/CD**, que transforma os dados abertos de fundos de investimento da CVM em tabelas analíticas consultáveis no Athena, por menos de US$ 5 por mês.
 
 **Status:** 🚧 em desenvolvimento · Épico 1 de 7 (Fundações e conta AWS)
+
+> 🇬🇧 **In English:** A serverless data pipeline on **AWS** (Lambda, S3, Glue, Athena), fully provisioned with **Terraform**, orchestrated by **Airflow** and shipped through **GitHub Actions with OIDC**. It turns the Brazilian Securities Commission (CVM) open data on investment funds into queryable analytics tables, with idempotent reprocessing, quarantine for invalid records and a cost target under US$ 5/month.
 
 ---
 
@@ -172,11 +174,9 @@ Para desenvolver: `make install`, `make lint`, `make test` e `make tf-plan`.
 
 ## Licença
 
-Copyright © 2026 Thales Reiser Pedreira. **Todos os direitos reservados.**
-
-O código pode ser lido e executado localmente para avaliação técnica; cópia, redistribuição, obras derivadas e uso comercial exigem autorização por escrito. Quem executar o projeto na própria conta AWS responde pelos custos gerados. Veja [`LICENSE`](LICENSE) e [`POLITICA-DE-USO.md`](POLITICA-DE-USO.md).
+Código sob a licença [MIT](LICENSE): pode ser usado, copiado e modificado, inclusive comercialmente, desde que o aviso de copyright de **Thales Reiser Pedreira** seja mantido. Regras sobre os dados e a segurança estão em [`POLITICA-DE-USO.md`](POLITICA-DE-USO.md).
 
 ## Autor
 
-**Thales Reiser Pedreira**, desenvolvedor Python e HPCC com experiência em DevOps e infraestrutura.
-[GitHub](https://github.com/thalesreiser) · [LinkedIn](https://www.linkedin.com/in/thalesreiser/)
+**Thales Reiser Pedreira**, Engenheiro de Dados e de Software · Python, SQL, AWS e Big Data.
+[GitHub](https://github.com/thalesreiser) · [LinkedIn](https://www.linkedin.com/in/thalesreiserpedreira)
