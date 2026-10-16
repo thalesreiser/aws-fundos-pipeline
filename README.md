@@ -101,6 +101,22 @@ The daily report key is **fund CNPJ + reference date** (RN-01).
 | Quality | pandera + pytest + moto |
 | Observability | CloudWatch + SNS |
 
+## Develop in GitHub Codespaces
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/thalesreiser/aws-fundos-pipeline?quickstart=1)
+
+The repository ships a dev container (`.devcontainer/`), so the whole environment runs in the cloud and nothing needs to be installed locally. The codespace is created on a 2-core / 8 GB machine with Python 3.11, Terraform, AWS CLI, Docker and make preinstalled; dependencies and pre-commit hooks are set up on creation.
+
+```bash
+aws configure sso   # short-lived credentials, never access keys (RNF-03)
+make tf-plan        # validate and plan the infrastructure
+make airflow-up     # local Airflow
+```
+
+Forwarded port: Airflow UI (8080).
+
+Codespaces consume the monthly quota of the GitHub account: **stop** the codespace when you are not using it (it also stops after 30 minutes idle) and **delete** it at the end of a phase. The same configuration works locally with Docker Desktop and the VS Code *Dev Containers* extension.
+
 ## How to run
 
 **Prerequisites:** an AWS account (with MFA and a non-root user), Terraform 1.6+, Docker and Python 3.11.
