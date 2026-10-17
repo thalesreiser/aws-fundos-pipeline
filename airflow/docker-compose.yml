@@ -1,0 +1,130 @@
+# Local Airflow for aws-fundos-pipeline (RNF-04, ADR 002).
+#
+# Based on the official docker-compose.yaml of Apache Airflow 3.3.2
+# (https://airflow.apache.org/docs/apache-airflow/3.3.2/docker-compose.yaml), trimmed to
+# fit a laptop or a GitHub-hosted runner (2 CPUs, 8 GB RAM):
+#   - CeleryExecutor -> LocalExecutor: removed redis, airflow-worker and flower
+#   - removed airflow-triggerer (no deferrable operators yet; add it back if needed)
+#   - removed airflow-cli (use `docker compose exec airflow-scheduler airflow ...`)
+#   - removed _PIP_ADDITIONAL_REQUIREMENTS, example DAGs and the config/plugins mounts
+#   - one API server worker and a small parallelism to reduce memory
+#
+# AWS credentials (RNF-03): NO keys. The host AWS config directory (created by
+# `aws configure sso`) is mounted read-only and the profile is chosen by AWS_PROFILE.
+#
+# All values below are LOCAL DEVELOPMENT defaults, overridable through the root `.env`
+# (see `.env.example`). They are not real secrets and must never be reused elsewhere.
+
+x-airflow-common: &airflow-common
+  image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:3.3.2-python3.11}
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__PARALLELISM: "4"
+    AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-}
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
+    AIRFLOW__API__WORKERS: "1"
+    AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_JWT_SECRET:-local-dev-only}
+    AIRFLOW__API_AUTH__JWT_ISSUER: airflow
+    AIRFLOW__DAG_PROCESSOR__PARSING_PROCESSES: "1"
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+    # AWS via SSO profile (no access keys)
+    AWS_PROFILE: ${AWS_PROFILE:-portfolio}
+    AWS_DEFAULT_REGION: ${AWS_REGION:-us-east-1}
+    AWS_CONFIG_FILE: /home/airflow/.aws/config
+    AWS_SHARED_CREDENTIALS_FILE: /home/airflow/.aws/credentials
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    # Host ~/.aws (Windows: %USERPROFILE%\.aws). Created empty if missing, e.g. in CI.
+    - ${AWS_CONFIG_DIR:-~/.aws}:/home/airflow/.aws:ro
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on: &airflow-common-depends-on
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always
+
+  airflow-apiserver:
+    <<: *airflow-common
+    command: api-server
+    ports:
+      - "${AIRFLOW_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/monitor/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-dag-processor:
+    <<: *airflow-common
+    command: dag-processor
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type DagProcessorJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        mkdir -v -p /opt/airflow/logs
+        chown -R "${AIRFLOW_UID:-50000}:0" /opt/airflow/logs
+        /entrypoint airflow version
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_DB_MIGRATE: "true"
+      _AIRFLOW_WWW_USER_CREATE: "true"
+      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_ADMIN_USER:-airflow}
+      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:-airflow}
+    user: "0:0"
+
+volumes:
+  postgres-db-volume:
