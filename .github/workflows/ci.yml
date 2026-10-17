@@ -63,13 +63,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
-      AWS_CONFIG_DIR: ${{ runner.temp }}/aws
       COMPOSE: docker compose -f airflow/docker-compose.yml
     steps:
       - uses: actions/checkout@v4
 
       - name: Prepare host settings (UID and a dummy SSO profile, no keys)
         run: |
+          AWS_CONFIG_DIR="$RUNNER_TEMP/aws"
+          echo "AWS_CONFIG_DIR=$AWS_CONFIG_DIR" >> "$GITHUB_ENV"
           echo "AIRFLOW_UID=$(id -u)" >> "$GITHUB_ENV"
           mkdir -p "$AWS_CONFIG_DIR"
           printf '%s\n' \
