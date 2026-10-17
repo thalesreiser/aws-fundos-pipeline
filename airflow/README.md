@@ -14,8 +14,9 @@ continuous cost of MWAA (see [ADR 002](../docs/adr/002-airflow-local-vs-mwaa.md)
 | `airflow-dag-processor` | Parses `dags/` |
 
 Trimmed from the official compose: Redis, Celery worker, Flower, triggerer and `airflow-cli`
-(details in the header of `docker-compose.yml` and in ADR 002). Plan for about 3 GB of RAM
-and 4 GB of disk for the images.
+(details in the header of `docker-compose.yml` and in ADR 002). Measured in CI: about 730 MiB of
+RAM idle for the four containers (scheduler 227, API server 257, DAG processor 200, Postgres 44 MiB);
+plan for 2 GB of RAM and about 4 GB of disk for the images.
 
 ## Prerequisites
 
