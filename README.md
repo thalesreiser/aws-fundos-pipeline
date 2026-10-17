@@ -107,9 +107,17 @@ The daily report key is **fund CNPJ + reference date** (RN-01).
 
 ```bash
 make tf-apply                     # provision the infrastructure
-make airflow-up                   # start local Airflow
+make airflow-up                   # start local Airflow and wait until it is healthy
 make trigger COMPETENCIA=2026-09  # process one month end to end
+make airflow-down                 # stop Airflow (V=1 also deletes its database)
 ```
+
+**Airflow:** Apache Airflow 3.3.2 in Docker Compose (`LocalExecutor` + Postgres, about 0.75 GB of
+RAM idle as measured in CI), UI and API on <http://localhost:8080> (local-only user `airflow`/`airflow`). AWS access
+uses no keys: the host `~/.aws` (Windows `%USERPROFILE%\.aws`) is mounted read-only and the
+profile comes from `AWS_PROFILE` (default `portfolio`, created with `aws configure sso`).
+Copy `.env.example` to `.env` to change these local defaults. Details in
+[`airflow/README.md`](airflow/README.md) and [ADR 002](docs/adr/002-airflow-local-vs-mwaa.md).
 
 When you are done: **`make tf-destroy`**.
 

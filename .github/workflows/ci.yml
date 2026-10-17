@@ -37,3 +37,111 @@ jobs:
       #     role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
       #     aws-region: us-east-1
       # - run: terraform plan
+
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      airflow: ${{ steps.filter.outputs.airflow }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            airflow:
+              - 'airflow/**'
+              - 'Makefile'
+              - '.env.example'
+              - '.github/workflows/ci.yml'
+
+  airflow:  # RNF-04: local Airflow stack validated here (no Docker on the dev laptop)
+    needs: changes
+    if: needs.changes.outputs.airflow == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      COMPOSE: docker compose -f airflow/docker-compose.yml
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare host settings (UID and a dummy SSO profile, no keys)
+        run: |
+          AWS_CONFIG_DIR="$RUNNER_TEMP/aws"
+          echo "AWS_CONFIG_DIR=$AWS_CONFIG_DIR" >> "$GITHUB_ENV"
+          echo "AIRFLOW_UID=$(id -u)" >> "$GITHUB_ENV"
+          mkdir -p "$AWS_CONFIG_DIR"
+          printf '%s\n' \
+            '[profile portfolio]' \
+            'sso_session = portfolio' \
+            'sso_account_id = 000000000000' \
+            'sso_role_name = ci-dummy' \
+            'region = us-east-1' \
+            '' \
+            '[sso-session portfolio]' \
+            'sso_start_url = https://example.awsapps.com/start' \
+            'sso_region = us-east-1' > "$AWS_CONFIG_DIR/config"
+
+      - name: make airflow-up
+        run: make airflow-up
+
+      - name: API health check
+        run: |
+          curl -fsS http://localhost:8080/api/v2/monitor/health | tee health.json
+          echo
+          jq -e '[.metadatabase.status, .scheduler.status, .dag_processor.status]
+            | all(. == "healthy")' health.json
+
+      - name: Memory footprint
+        run: docker stats --no-stream --format 'table {{.Name}}\t{{.MemUsage}}\t{{.CPUPerc}}'
+
+      - name: DAG is listed without import errors
+        run: |
+          for i in $(seq 1 24); do
+            if $COMPOSE exec -T airflow-scheduler airflow dags list -o plain | grep -qw fundos_cvm; then
+              break
+            fi
+            echo "waiting for the DAG processor ($i)"; sleep 5
+          done
+          $COMPOSE exec -T airflow-scheduler airflow dags list -o plain | tee dags.txt
+          grep -qw fundos_cvm dags.txt
+          errors=$($COMPOSE exec -T airflow-scheduler airflow dags list-import-errors -o json)
+          echo "import errors: $errors"
+          test "$(echo "$errors" | jq length)" -eq 0
+
+      - name: AWS profile resolved from the mounted SSO config (no keys)
+        run: |
+          $COMPOSE exec -T airflow-scheduler python -c '
+          import os, boto3
+          assert not any(k in os.environ for k in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"))
+          s = boto3.Session()
+          assert s.profile_name == "portfolio", s.profile_name
+          assert "portfolio" in s.available_profiles
+          print("profile:", s.profile_name, "| region:", s.region_name, "| no static keys")
+          '
+
+      - name: make trigger runs the placeholder DAG end to end
+        run: |
+          make trigger COMPETENCIA=2026-09
+          for i in $(seq 1 36); do
+            state=$($COMPOSE exec -T airflow-scheduler airflow dags list-runs fundos_cvm -o json \
+              | jq -r '.[0].state')
+            echo "run state: $state"
+            [ "$state" = "success" ] && break
+            [ "$state" = "failed" ] && exit 1
+            sleep 5
+          done
+          [ "$state" = "success" ]
+          grep -rh "COMPETENCIA=2026-09" airflow/logs | head -1
+
+      - name: Dump logs on failure
+        if: failure()
+        run: |
+          make airflow-ps || true
+          make airflow-logs || true
+
+      - name: make airflow-down V=1
+        if: always()
+        run: make airflow-down V=1
