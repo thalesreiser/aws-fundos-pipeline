@@ -6,7 +6,8 @@ on:
 
 permissions:
   contents: read
-  id-token: write  # OIDC with AWS (RNF-03), no long-lived keys
+  # OIDC with AWS (RNF-03, task 2.4): grant `id-token: write` only to the job that assumes the
+  # role, not to every job of the workflow.
 
 jobs:
   python:
@@ -47,7 +48,8 @@ jobs:
       airflow: ${{ steps.filter.outputs.airflow }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      # Third-party action pinned to a commit SHA (v3.0.4).
+      - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad
         id: filter
         with:
           filters: |
