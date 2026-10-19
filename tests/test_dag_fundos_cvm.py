@@ -49,7 +49,9 @@ def test_dag_has_no_aws_sdk_or_secrets() -> None:
 
 
 def test_dagbag_imports_without_errors() -> None:
-    pytest.importorskip("airflow")
+    # `airflow.models`, not `airflow`: the repository has an `airflow/` folder that imports as a
+    # namespace package when the repository root is on sys.path (`python -m pytest`).
+    pytest.importorskip("airflow.models")
     from airflow.models import DagBag
 
     bag = DagBag(dag_folder=str(DAG_FILE.parent), include_examples=False)

@@ -5,7 +5,8 @@ AIRFLOW_ENV_FILE := $(if $(wildcard .env),--env-file .env,)
 AIRFLOW = docker compose $(AIRFLOW_ENV_FILE) -f airflow/docker-compose.yml
 AIRFLOW_WAIT_TIMEOUT ?= 300
 
-.PHONY: install lint fmt test tf-init tf-plan tf-apply tf-destroy airflow-up airflow-down airflow-ps \n	airflow-logs trigger
+.PHONY: install lint fmt test tf-init tf-plan tf-apply tf-destroy airflow-up airflow-down airflow-ps \
+	airflow-logs trigger
 
 install:
 	pip install -e ".[dev]" && pre-commit install
