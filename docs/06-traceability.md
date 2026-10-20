@@ -19,3 +19,4 @@
 | Date | Change | Reason | ADR |
 |---|---|---|---|
 | 2026-10-17 | Local Airflow 3.3.2 in Docker Compose (LocalExecutor, trimmed official compose), AWS via SSO profile, `airflow` CI job (task 5.1). Real AWS access pending task 1.2 | Avoid MWAA fixed cost (RNF-02, RST-01); reproducible orchestration (RNF-04) | [002](adr/002-airflow-local-vs-mwaa.md) |
+| 2026-10-20 | Security hygiene: `SECURITY.md` (private vulnerability reporting), Dependabot for pip, GitHub Actions and Terraform, third-party actions pinned to commit SHAs, CVM ODbL attribution in README and usage policy | Public repository; supply-chain and licensing hygiene (RST-01) | |

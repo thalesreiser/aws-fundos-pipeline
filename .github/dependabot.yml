@@ -1,0 +1,44 @@
+# Dependabot version updates. Security alerts are enabled in the repository settings.
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      pip-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      actions-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "terraform"
+    directory: "/infra/terraform"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      terraform-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+# The Airflow image (apache/airflow in airflow/docker-compose.yml) is pinned on purpose and
+# upgraded by hand, so the docker ecosystem is not configured here.
