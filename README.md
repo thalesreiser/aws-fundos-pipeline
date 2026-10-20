@@ -178,6 +178,18 @@ For development: `make install`, `make lint`, `make test` and `make tf-plan`.
 | **P1** | **aws-fundos-pipeline** (this one) | AWS pipeline with Terraform, Airflow and CI/CD |
 | P3 | [dbt-dw-api](https://github.com/thalesreiser/dbt-dw-api) | Data warehouse with dbt and a REST API, built on the gold layer of this project |
 
+## Data source and attribution
+
+Source: Comissão de Valores Mobiliários (CVM) — Portal Dados Abertos
+([dados.cvm.gov.br](https://dados.cvm.gov.br)), licensed under the
+[Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/1-0/).
+
+This repository does **not** redistribute CVM data: it contains only code and small synthetic
+test fixtures, and the data is
+downloaded from the portal at run time. Results derived from CVM data remain subject to the ODbL
+attribution and share-alike terms if you publish them as a database. The MIT license below
+covers the code only. Details in [`USAGE-POLICY.md`](USAGE-POLICY.md).
+
 ## License
 
 Code under the [MIT](LICENSE) license: it may be used, copied and modified, including commercially, as long as the copyright notice of **Thales Reiser Pedreira** is kept. Rules about data, security and cloud costs are in [`USAGE-POLICY.md`](USAGE-POLICY.md).
