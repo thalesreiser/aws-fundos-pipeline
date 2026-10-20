@@ -13,7 +13,7 @@ jobs:
   python:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -27,7 +27,7 @@ jobs:
       run:
         working-directory: infra/terraform
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Third-party action pinned to a commit SHA (v3.1.2).
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
       - run: terraform fmt -check -recursive
@@ -48,7 +48,7 @@ jobs:
     outputs:
       airflow: ${{ steps.filter.outputs.airflow }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Third-party action pinned to a commit SHA (v3.0.4).
       - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad
         id: filter
@@ -68,7 +68,7 @@ jobs:
     env:
       COMPOSE: docker compose -f airflow/docker-compose.yml
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Prepare host settings (UID and a dummy SSO profile, no keys)
         run: |
